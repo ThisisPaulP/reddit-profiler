@@ -8,56 +8,26 @@ const openai = new OpenAI({
 async function fetchRedditComments(username: string) {
   try {
     console.log('Fetching comments for user:', username);
-    console.log('Using Reddit credentials:', {
-      clientId: process.env.REDDIT_CLIENT_ID?.slice(0, 4) + '...',
-      username: process.env.REDDIT_USERNAME?.slice(0, 4) + '...',
-      hasSecret: !!process.env.REDDIT_CLIENT_SECRET,
-      hasPassword: !!process.env.REDDIT_PASSWORD
-    });
-
-    const basicAuth = Buffer.from(
-      `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`
-    ).toString('base64');
-
-    // First get the access token
-    const tokenResponse = await fetch('https://www.reddit.com/api/v1/access_token', {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${basicAuth}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'web:reddit-profiler:v1.0.0 (by /u/' + process.env.REDDIT_USERNAME + ')',
-      },
-      body: new URLSearchParams({
-        grant_type: 'password',
-        username: process.env.REDDIT_USERNAME || '',
-        password: process.env.REDDIT_PASSWORD || '',
-      }),
-    });
-
-    if (!tokenResponse.ok) {
-      const tokenError = await tokenResponse.text();
-      console.error('Token Error Response:', tokenError);
-      throw new Error(`Failed to get Reddit access token: ${tokenResponse.status} ${tokenError}`);
-    }
-
-    const tokenData = await tokenResponse.json();
-    console.log('Successfully obtained access token');
-
-    // Now fetch the comments
+    
+    // Simple fetch without OAuth
     const response = await fetch(
-      `https://oauth.reddit.com/user/${username}/comments?limit=100`,
+      `https://www.reddit.com/user/${username}/comments.json?limit=100`,
       {
         headers: {
-          Authorization: `Bearer ${tokenData.access_token}`,
-          'User-Agent': 'web:reddit-profiler:v1.0.0 (by /u/' + process.env.REDDIT_USERNAME + ')',
+          'User-Agent': 'web:reddit-profiler:v1.0.0',
+          'Authorization': `Client-ID ${process.env.REDDIT_CLIENT_ID}`,
         },
       }
     );
 
+    if (response.status === 404) {
+      throw new Error('User not found');
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Reddit API Error Response:', errorText);
-      throw new Error(`Reddit API error: ${response.status} ${errorText}`);
+      throw new Error(`Reddit API error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -70,6 +40,10 @@ async function fetchRedditComments(username: string) {
     const comments = data.data.children
       .filter((child: any) => child.data && child.data.body)
       .map((child: any) => child.data.body);
+
+    if (comments.length === 0) {
+      throw new Error('No comments found for this user');
+    }
 
     console.log(`Successfully fetched ${comments.length} comments`);
     return comments;
@@ -120,13 +94,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('Profile generation error:', error);
     
-    // Return specific error messages
-    if (error.message.includes('Token')) {
-      return NextResponse.json(
-        { error: 'Failed to authenticate with Reddit API. Please check credentials.' },
-        { status: 401 }
-      );
-    } else if (error.message.includes('User not found')) {
+    if (error.message.includes('User not found')) {
       return NextResponse.json(
         { error: 'Reddit user not found' },
         { status: 404 }
