@@ -152,6 +152,10 @@ async function generateProfile(comments: string[]) {
       }
 
       return completion.choices[0].message.content;
+    } catch (error) {
+      console.error('generateProfile - OpenAI API Error:', error);
+      throw error;
+    }
   } catch (error) {
     console.error('generateProfile - Error:', error);
     throw error;
