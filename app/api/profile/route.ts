@@ -143,7 +143,7 @@ async function generateProfile(comments: string[]) {
         });
 
         // Race between timeout and actual request
-        const completion = await Promise.race([openaiPromise, timeoutPromise]);
+        const completion = await Promise.race([openaiPromise, timeoutPromise]) as OpenAI.Chat.ChatCompletion;
         console.log('generateProfile - OpenAI request successful');
         
         if (!completion?.choices?.[0]?.message?.content) {
@@ -154,9 +154,9 @@ async function generateProfile(comments: string[]) {
       } catch (error) {
         lastError = error;
         console.error(`generateProfile - Attempt ${attempt} failed:`, {
-          error: error.message,
-          name: error.name,
-          stack: error.stack
+          error: error instanceof Error ? error.message : 'Unknown error',
+          name: error instanceof Error ? error.name : 'Unknown',
+          stack: error instanceof Error ? error.stack : 'No stack trace'
         });
         
         if (attempt < MAX_RETRIES) {
@@ -168,7 +168,12 @@ async function generateProfile(comments: string[]) {
     }
     
     // If we get here, all retries failed
-    throw lastError;
+    throw new Error(lastError instanceof Error ? lastError.message : 'Failed after all retry attempts');
+  } catch (error) {
+    console.error('generateProfile - Final error:', error);
+    throw error;
+  }
+}
     } catch (error) {
       console.error('generateProfile - OpenAI API Error:', error);
       throw error;
