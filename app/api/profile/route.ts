@@ -102,7 +102,7 @@ async function generateProfile(comments: string[]) {
       temperature: 0.7,
     });
 
-    console.log('Successfully generated profile');
+    console.log('Successfully generated profile!');
     return completion.choices[0].message.content;
   } catch (error) {
     console.error('Error in generateProfile:', error);
