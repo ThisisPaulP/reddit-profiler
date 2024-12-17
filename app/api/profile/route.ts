@@ -9,12 +9,17 @@ async function fetchRedditComments(username: string) {
   try {
     console.log('Fetching comments for user:', username);
     
+    // Using public JSON API
     const response = await fetch(
-      `https://www.reddit.com/user/${username}/comments.json?limit=100`,
+      `https://www.reddit.com/user/${username}/comments/.json?limit=100`,
       {
         headers: {
-          'User-Agent': 'web:reddit-profiler:v1.0.0',
+          'User-Agent': `web:reddit-profiler:v1.0.0 (by /u/${process.env.REDDIT_USERNAME})`,
+          'Accept': 'application/json',
         },
+        next: {
+          revalidate: 60 // Cache for 60 seconds
+        }
       }
     );
 
@@ -53,34 +58,20 @@ async function fetchRedditComments(username: string) {
 
 async function generateProfile(comments: string[]) {
   try {
-    console.log('Starting profile generation with OpenAI');
-    console.log('OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
-    
+    console.log('Generating profile from comments');
     const commentText = comments.join(' ').slice(0, 6000);
     
     const prompt = `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona. Comments: ${commentText}`;
 
-    console.log('Sending request to OpenAI...');
     const completion = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "gpt-4",
       max_tokens: 500,
       temperature: 0.7,
-    }).catch(error => {
-      console.error('OpenAI API Error:', error);
-      throw new Error(`OpenAI API Error: ${error.message}`);
     });
 
-    console.log('Received response from OpenAI');
-    
-    if (!completion.choices?.[0]?.message?.content) {
-      console.error('Invalid OpenAI response format:', completion);
-      throw new Error('Invalid response from OpenAI');
-    }
-
-    const profile = completion.choices[0].message.content;
     console.log('Successfully generated profile');
-    return profile;
+    return completion.choices[0].message.content;
   } catch (error) {
     console.error('Error in generateProfile:', error);
     throw error;
@@ -102,14 +93,10 @@ export async function POST(req: Request) {
     const comments = await fetchRedditComments(username);
     const profile = await generateProfile(comments);
     
-    // Log the successful profile before sending
-    console.log('Successfully generated profile, sending response');
-    
     return NextResponse.json({ profile });
   } catch (error: any) {
     console.error('Profile generation error:', error);
     
-    // More specific error messages
     if (error.message.includes('User not found')) {
       return NextResponse.json(
         { error: 'Reddit user not found' },
@@ -119,11 +106,6 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: 'This user has no public comments' },
         { status: 404 }
-      );
-    } else if (error.message.includes('OpenAI API Error')) {
-      return NextResponse.json(
-        { error: 'Error generating profile: OpenAI API issue' },
-        { status: 500 }
       );
     }
 
