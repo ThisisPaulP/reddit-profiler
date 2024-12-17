@@ -9,17 +9,13 @@ async function fetchRedditComments(username: string) {
   try {
     console.log('Fetching comments for user:', username);
     
-    // Using public JSON API
     const response = await fetch(
-      `https://www.reddit.com/user/${username}/comments/.json?limit=100`,
+      `https://oauth.reddit.com/user/${username}/comments?limit=100`,
       {
         headers: {
-          'User-Agent': `web:reddit-profiler:v1.0.0 (by /u/${process.env.REDDIT_USERNAME})`,
-          'Accept': 'application/json',
+          'Authorization': `Bearer ${process.env.REDDIT_CLIENT_SECRET}`,
+          'User-Agent': 'web:reddit-profiler:v1.0.0',
         },
-        next: {
-          revalidate: 60 // Cache for 60 seconds
-        }
       }
     );
 
