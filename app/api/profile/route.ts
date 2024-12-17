@@ -44,9 +44,9 @@ async function fetchRedditComments(username: string) {
     const accessToken = await getRedditToken();
     console.log('Successfully obtained access token');
 
-    // Fetch comments using the access token
+    // Fetch comments using the access token - reduced to 25 comments
     const response = await fetch(
-      `https://oauth.reddit.com/user/${cleanUsername}/comments?limit=100`,
+      `https://oauth.reddit.com/user/${cleanUsername}/comments?limit=25`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -91,14 +91,16 @@ async function fetchRedditComments(username: string) {
 async function generateProfile(comments: string[]) {
   try {
     console.log('Generating profile from comments');
-    const commentText = comments.join(' ').slice(0, 6000);
+    // Reduced comment text length to 3000 characters
+    const commentText = comments.join(' ').slice(0, 3000);
     
     const prompt = `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona. Comments: ${commentText}`;
 
     const completion = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "gpt-4",
-      max_tokens: 500,
+      // Reduced max tokens to 250
+      max_tokens: 250,
       temperature: 0.7,
     });
 
