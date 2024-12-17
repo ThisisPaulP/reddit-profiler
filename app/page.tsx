@@ -11,6 +11,7 @@ export default function Home() {
   const generateProfile = async () => {
     setLoading(true);
     setError('');
+    setProfile('');
     
     try {
       const response = await fetch('/api/profile', {
@@ -19,14 +20,19 @@ export default function Home() {
         body: JSON.stringify({ username }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to generate profile');
+        throw new Error(data.error || 'Failed to generate profile');
       }
 
-      const data = await response.json();
+      if (!data.profile) {
+        throw new Error('No profile data received');
+      }
+
       setProfile(data.profile);
-    } catch (err) {
-      setError('Failed to generate profile. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate profile. Please try again.');
     } finally {
       setLoading(false);
     }
