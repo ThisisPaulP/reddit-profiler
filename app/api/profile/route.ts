@@ -5,15 +5,45 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+async function getRedditToken() {
+  const basicAuth = Buffer.from(
+    `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`
+  ).toString('base64');
+
+  const response = await fetch('https://www.reddit.com/api/v1/access_token', {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${basicAuth}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'web:reddit-profiler:v1.0.0',
+    },
+    body: 'grant_type=client_credentials',
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Token Error:', error);
+    throw new Error('Failed to get Reddit access token');
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
+
 async function fetchRedditComments(username: string) {
   try {
     console.log('Fetching comments for user:', username);
     
+    // Get access token
+    const accessToken = await getRedditToken();
+    console.log('Successfully obtained access token');
+
+    // Fetch comments using the access token
     const response = await fetch(
       `https://oauth.reddit.com/user/${username}/comments?limit=100`,
       {
         headers: {
-          'Authorization': `Bearer ${process.env.REDDIT_CLIENT_SECRET}`,
+          'Authorization': `Bearer ${accessToken}`,
           'User-Agent': 'web:reddit-profiler:v1.0.0',
         },
       }
