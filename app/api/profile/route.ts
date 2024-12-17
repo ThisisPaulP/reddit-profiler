@@ -56,7 +56,7 @@ async function fetchRedditComments(username: string) {
     );
 
     if (response.status === 404) {
-      throw new Error('User not found');
+      throw new Error('User not found!');
     }
 
     if (!response.ok) {
@@ -102,7 +102,7 @@ async function generateProfile(comments: string[]) {
       temperature: 0.7,
     });
 
-    console.log('Successfully generated profile!');
+    console.log('Successfully generated profile');
     return completion.choices[0].message.content;
   } catch (error) {
     console.error('Error in generateProfile:', error);
