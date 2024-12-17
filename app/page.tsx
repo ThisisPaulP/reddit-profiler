@@ -9,54 +9,32 @@ export default function Home() {
   const [error, setError] = useState('');
 
   const generateProfile = async () => {
-    console.log('generateProfile - Starting profile generation for username:', username);
     setLoading(true);
     setError('');
     setProfile('');
     
     try {
-      console.log('generateProfile - Making API request');
       const response = await fetch('/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim() }),
+        body: JSON.stringify({ username }),
       });
 
-      console.log('generateProfile - Response status:', response.status);
-      console.log('generateProfile - Response status text:', response.statusText);
-
       const data = await response.json();
-      console.log('generateProfile - Received data:', data);
 
       if (!response.ok) {
-        console.error('generateProfile - Error response:', data);
         throw new Error(data.error || 'Failed to generate profile');
       }
 
       if (!data.profile) {
-        console.error('generateProfile - No profile data in response');
         throw new Error('No profile data received');
       }
 
-      console.log('generateProfile - Setting profile data');
       setProfile(data.profile);
     } catch (err: any) {
-      console.error('generateProfile - Error:', err);
-      console.error('generateProfile - Error stack:', err.stack);
       setError(err.message || 'Failed to generate profile. Please try again.');
     } finally {
-      console.log('generateProfile - Completing request');
       setLoading(false);
-    }
-  };
-
-  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    console.log('handleUsernameChange - New value:', value);
-    setUsername(value);
-    if (error) {
-      console.log('handleUsernameChange - Clearing previous error');
-      setError('');
     }
   };
 
@@ -67,19 +45,16 @@ export default function Home() {
         
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Reddit Username
-            </label>
             <input
               type="text"
               value={username}
-              onChange={handleUsernameChange}
-              placeholder="Enter Reddit username (e.g., spez)"
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter Reddit username"
               className="w-full p-3 border border-gray-300 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={generateProfile}
-              disabled={loading || !username.trim()}
+              disabled={loading || !username}
               className="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Generating Profile...' : 'Generate Profile'}
