@@ -127,16 +127,21 @@ async function generateProfile(comments: string[]) {
       });
       console.log('generateProfile - OpenAI request successful');
       return completion.choices[0].message.content;
-    } catch (openaiError) {
+    } catch (error) {
+      const openaiError = error as Error;
       console.error('generateProfile - OpenAI API Error:', openaiError);
       console.error('generateProfile - OpenAI API Error details:', {
         name: openaiError.name,
         message: openaiError.message,
-        status: openaiError.status,
         stack: openaiError.stack
       });
       throw openaiError;
     }
+  } catch (error) {
+    console.error('generateProfile - Error:', error);
+    throw error;
+  }
+}
   } catch (error) {
     console.error('generateProfile - Error:', error);
     throw error;
