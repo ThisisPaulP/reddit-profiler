@@ -5,22 +5,29 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Function to validate and clean Reddit usernames
-function validateRedditUsername(username: string): string | null {
+function validateRedditUsername(username: string): { isValid: boolean; cleanUsername?: string; error?: string } {
   // Remove any leading 'u/' or '/u/' if present
-  username = username.replace(/^\/?(u\/)?/i, '');
+  const cleanUsername = username.replace(/^\/?(u\/)?/i, '');
   
-  // Reddit username rules:
-  // - Between 3 and 20 characters
-  // - Only contains alphanumeric characters, underscores, and hyphens
-  // - Doesn't start with a number or special character
-  const redditUsernamePattern = /^[a-zA-Z][a-zA-Z0-9_-]{2,19}$/;
+  // Log the cleaned username for debugging
+  console.log('Cleaned username:', cleanUsername);
   
-  if (!redditUsernamePattern.test(username)) {
-    return null;
+  // Check minimum length
+  if (cleanUsername.length < 3) {
+    return { isValid: false, error: 'Username must be at least 3 characters long' };
   }
   
-  return username;
+  // Check maximum length
+  if (cleanUsername.length > 20) {
+    return { isValid: false, error: 'Username must be no more than 20 characters long' };
+  }
+  
+  // Check for valid characters
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(cleanUsername)) {
+    return { isValid: false, error: 'Username can only contain letters, numbers, underscores, and hyphens' };
+  }
+  
+  return { isValid: true, cleanUsername };
 }
 
 async function getRedditToken() {
@@ -135,15 +142,15 @@ export async function POST(req: Request) {
     }
 
     // Validate and clean the username
-    const cleanUsername = validateRedditUsername(username);
-    if (!cleanUsername) {
+    const validation = validateRedditUsername(username);
+    if (!validation.isValid) {
       return NextResponse.json(
-        { error: 'Invalid Reddit username format. Usernames must be 3-20 characters long and start with a letter.' },
+        { error: validation.error },
         { status: 400 }
       );
     }
 
-    const comments = await fetchRedditComments(cleanUsername);
+    const comments = await fetchRedditComments(validation.cleanUsername!);
     const profile = await generateProfile(comments);
     
     return NextResponse.json({ profile });
