@@ -98,7 +98,7 @@ async function generateProfile(comments: string[]) {
 
     const completion = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "gpt-4",
+      model: "chatgpt-4o-latest",
       // Reduced max tokens to 100
       max_tokens: 200,
       temperature: 0.7,
