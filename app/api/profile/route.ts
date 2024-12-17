@@ -5,22 +5,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Function to validate and clean Reddit usernames
-function validateRedditUsername(username: string): string | null {
-  // Remove any leading 'u/' or '/u/' if present
-  username = username.replace(/^\/?(u\/)?/i, '');
-  
-  // Reddit username rules:
-  // - Between 3 and 20 characters
-  // - Only contains alphanumeric characters, underscores, and hyphens
-  // - Doesn't start with a number or special character
-  const redditUsernamePattern = /^[a-zA-Z][a-zA-Z0-9_-]{2,19}$/;
-  
-  if (!redditUsernamePattern.test(username)) {
-    return null;
-  }
-  
-  return username;
+// Function to clean Reddit usernames by removing any leading 'u/' or '/u/' if present
+function cleanRedditUsername(username: string): string {
+  return username.replace(/^\/?(u\/)?/i, '');
 }
 
 async function getRedditToken() {
@@ -50,7 +37,8 @@ async function getRedditToken() {
 
 async function fetchRedditComments(username: string) {
   try {
-    console.log('Fetching comments for user:', username);
+    const cleanUsername = cleanRedditUsername(username);
+    console.log('Fetching comments for user:', cleanUsername);
     
     // Get access token
     const accessToken = await getRedditToken();
@@ -58,7 +46,7 @@ async function fetchRedditComments(username: string) {
 
     // Fetch comments using the access token
     const response = await fetch(
-      `https://oauth.reddit.com/user/${username}/comments?limit=100`,
+      `https://oauth.reddit.com/user/${cleanUsername}/comments?limit=100`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -134,14 +122,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate and clean the username
-    const cleanUsername = validateRedditUsername(username);
-    if (!cleanUsername) {
-      return NextResponse.json(
-        { error: 'Invalid Reddit username format. Usernames must be 3-20 characters long and start with a letter.' },
-        { status: 400 }
-      );
-    }
+    // Clean the username by removing any leading 'u/' or '/u/'
+    const cleanUsername = cleanRedditUsername(username);
 
     const comments = await fetchRedditComments(cleanUsername);
     const profile = await generateProfile(comments);
