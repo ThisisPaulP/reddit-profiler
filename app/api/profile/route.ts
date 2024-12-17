@@ -5,6 +5,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+if (!process.env.OPENAI_API_KEY || !process.env.REDDIT_CLIENT_ID || !process.env.REDDIT_CLIENT_SECRET) {
+  console.log('Missing API keys:', {
+    openai: !!process.env.OPENAI_API_KEY,
+    redditClientId: !!process.env.REDDIT_CLIENT_ID,
+    redditClientSecret: !!process.env.REDDIT_CLIENT_SECRET
+  });
+}
+
 // Function to clean Reddit usernames by removing any leading 'u/' or '/u/' if present
 function cleanRedditUsername(username: string): string {
   return username.replace(/^\/?(u\/)?/i, '');
@@ -25,6 +33,8 @@ async function getRedditToken() {
     body: 'grant_type=client_credentials',
   });
 
+  console.log('Reddit Token Fetch Response:', response.status);
+  
   if (!response.ok) {
     const error = await response.text();
     console.error('Token Error:', error);
@@ -32,6 +42,7 @@ async function getRedditToken() {
   }
 
   const data = await response.json();
+  console.log('Reddit Token Data:', data);
   return data.access_token;
 }
 
@@ -55,6 +66,8 @@ async function fetchRedditComments(username: string) {
       }
     );
 
+    console.log('Reddit API Comments Response:', response.status);
+    
     if (response.status === 404) {
       throw new Error('User not found');
     }
@@ -76,14 +89,13 @@ async function fetchRedditComments(username: string) {
       .filter((child: any) => child.data && child.data.body)
       .map((child: any) => child.data.body);
 
-    if (comments.length === 0) {
-      throw new Error('No comments found for this user');
-    }
-
     console.log(`Successfully fetched ${comments.length} comments`);
     return comments;
   } catch (error) {
-    console.error('Error in fetchRedditComments:', error);
+    console.error('Error in fetchRedditComments:', {
+      message: error.message,
+      stack: error.stack
+    });
     throw error;
   }
 }
@@ -95,6 +107,8 @@ async function generateProfile(comments: string[]) {
     
     const prompt = `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona. Comments: ${commentText}`;
 
+    console.log('Sending request to OpenAI with prompt length:', prompt.length);
+    
     const completion = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "gpt-4",
@@ -102,10 +116,21 @@ async function generateProfile(comments: string[]) {
       temperature: 0.7,
     });
 
+    console.log('OpenAI API response:', {
+      status: completion.status,
+      headers: completion.headers,
+      choiceCount: completion.choices.length,
+      firstChoiceContentLength: completion.choices[0].message.content.length
+    });
+
     console.log('Successfully generated profile');
     return completion.choices[0].message.content;
   } catch (error) {
-    console.error('Error in generateProfile:', error);
+    console.error('Error in generateProfile:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
     throw error;
   }
 }
@@ -116,6 +141,7 @@ export async function POST(req: Request) {
     console.log('Received request for username:', username);
     
     if (!username) {
+      console.log('Error: Username is required');
       return NextResponse.json(
         { error: 'Username is required' },
         { status: 400 }
@@ -124,13 +150,26 @@ export async function POST(req: Request) {
 
     // Clean the username by removing any leading 'u/' or '/u/'
     const cleanUsername = cleanRedditUsername(username);
+    console.log('Cleaned username:', cleanUsername);
 
     const comments = await fetchRedditComments(cleanUsername);
+    console.log('Comments fetched:', comments.length);
+
     const profile = await generateProfile(comments);
+    console.log('Profile generated:', profile.length);
     
     return NextResponse.json({ profile });
   } catch (error: any) {
-    console.error('Profile generation error:', error);
+    console.error('Profile generation error:', {
+      message: error.message,
+      stack: error.stack,
+      status: error.status,
+      type: error.name,
+      response: error.response ? {
+        status: error.response.status,
+        data: error.response.data
+      } : undefined
+    });
     
     if (error.message.includes('User not found')) {
       return NextResponse.json(
