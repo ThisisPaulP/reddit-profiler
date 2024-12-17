@@ -59,7 +59,7 @@ export default function Home() {
               className="w-full p-3 border border-gray-300 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-sm text-gray-500 mb-4">
-              Username must be 3-20 characters long and contain only letters, numbers, underscores, or hyphens.
+              Username must be between 3-20 characters long and contain only letters, numbers, underscores, or hyphens.
             </p>
             <button
               onClick={generateProfile}
