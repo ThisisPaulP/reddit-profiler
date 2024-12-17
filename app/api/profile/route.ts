@@ -116,15 +116,27 @@ async function generateProfile(comments: string[]) {
     const prompt = `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona. Comments: ${commentText}`;
     
     console.log('generateProfile - Making OpenAI API request');
-    const completion = await openai.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "gpt-4",
-      max_tokens: 500,
-      temperature: 0.7,
-    });
-
-    console.log('generateProfile - Received OpenAI response');
-    return completion.choices[0].message.content;
+    console.log('generateProfile - OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
+    
+    try {
+      const completion = await openai.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: "gpt-4",
+        max_tokens: 500,
+        temperature: 0.7,
+      });
+      console.log('generateProfile - OpenAI request successful');
+      return completion.choices[0].message.content;
+    } catch (openaiError) {
+      console.error('generateProfile - OpenAI API Error:', openaiError);
+      console.error('generateProfile - OpenAI API Error details:', {
+        name: openaiError.name,
+        message: openaiError.message,
+        status: openaiError.status,
+        stack: openaiError.stack
+      });
+      throw openaiError;
+    }
   } catch (error) {
     console.error('generateProfile - Error:', error);
     throw error;
