@@ -117,31 +117,24 @@ async function generateProfile(comments: string[]) {
     
     console.log('generateProfile - Making OpenAI API request');
     console.log('generateProfile - OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
-    
-    try {
-      const completion = await openai.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
-        model: "gpt-4",
-        max_tokens: 500,
-        temperature: 0.7,
-      });
-      console.log('generateProfile - OpenAI request successful');
-      return completion.choices[0].message.content;
-    } catch (error) {
-      const openaiError = error as Error;
-      console.error('generateProfile - OpenAI API Error:', openaiError);
+
+    const completion = await openai.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "gpt-4",
+      max_tokens: 500,
+      temperature: 0.7,
+    }).catch(error => {
+      console.error('generateProfile - OpenAI API Error:', error);
       console.error('generateProfile - OpenAI API Error details:', {
-        name: openaiError.name,
-        message: openaiError.message,
-        stack: openaiError.stack
+        name: error.name,
+        message: error.message,
+        stack: error.stack
       });
-      throw openaiError;
-    }
-  } catch (error) {
-    console.error('generateProfile - Error:', error);
-    throw error;
-  }
-}
+      throw error;
+    });
+
+    console.log('generateProfile - OpenAI request successful');
+    return completion.choices[0].message.content;
   } catch (error) {
     console.error('generateProfile - Error:', error);
     throw error;
