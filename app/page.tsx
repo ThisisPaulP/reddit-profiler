@@ -17,7 +17,7 @@ export default function Home() {
       const response = await fetch('/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim() }), // Trim whitespace
+        body: JSON.stringify({ username: username.trim() }),
       });
 
       const data = await response.json();
@@ -37,7 +37,6 @@ export default function Home() {
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setUsername(value);
-    // Clear error when user starts typing again
     if (error) setError('');
   };
 
@@ -58,9 +57,6 @@ export default function Home() {
               placeholder="Enter Reddit username (e.g., spez)"
               className="w-full p-3 border border-gray-300 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <p className="text-sm text-gray-500 mb-4">
-              Username must be between 3-20 characters long and contain only letters, numbers, underscores, or hyphens.
-            </p>
             <button
               onClick={generateProfile}
               disabled={loading || !username.trim()}

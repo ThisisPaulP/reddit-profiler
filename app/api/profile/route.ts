@@ -5,29 +5,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-function validateRedditUsername(username: string): { isValid: boolean; cleanUsername?: string; error?: string } {
-  // Remove any leading 'u/' or '/u/' if present
-  const cleanUsername = username.replace(/^\/?(u\/)?/i, '');
-  
-  // Log the cleaned username for debugging
-  console.log('Cleaned username:', cleanUsername);
-  
-  // Check minimum length
-  if (cleanUsername.length < 3) {
-    return { isValid: false, error: 'Username must be at least 3 characters long' };
-  }
-  
-  // Check maximum length
-  if (cleanUsername.length > 20) {
-    return { isValid: false, error: 'Username must be no more than 20 characters long' };
-  }
-  
-  // Check for valid characters
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(cleanUsername)) {
-    return { isValid: false, error: 'Username can only contain letters, numbers, underscores, and hyphens' };
-  }
-  
-  return { isValid: true, cleanUsername };
+function cleanRedditUsername(username: string): string {
+  // Simply remove any leading 'u/' or '/u/' if present and trim whitespace
+  return username.replace(/^\/?(u\/)?/i, '').trim();
 }
 
 async function getRedditToken() {
@@ -141,16 +121,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate and clean the username
-    const validation = validateRedditUsername(username);
-    if (!validation.isValid) {
-      return NextResponse.json(
-        { error: validation.error },
-        { status: 400 }
-      );
-    }
-
-    const comments = await fetchRedditComments(validation.cleanUsername!);
+    const cleanUsername = cleanRedditUsername(username);
+    const comments = await fetchRedditComments(cleanUsername);
     const profile = await generateProfile(comments);
     
     return NextResponse.json({ profile });
