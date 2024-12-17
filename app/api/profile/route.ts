@@ -117,24 +117,41 @@ async function generateProfile(comments: string[]) {
     
     console.log('generateProfile - Making OpenAI API request');
     console.log('generateProfile - OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
+    console.log('generateProfile - About to make API call...');
 
-    const completion = await openai.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "gpt-4",
-      max_tokens: 500,
-      temperature: 0.7,
-    }).catch(error => {
-      console.error('generateProfile - OpenAI API Error:', error);
-      console.error('generateProfile - OpenAI API Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 500,
+          temperature: 0.7,
+        }),
       });
-      throw error;
-    });
 
-    console.log('generateProfile - OpenAI request successful');
-    return completion.choices[0].message.content;
+      console.log('generateProfile - OpenAI API Response Status:', response.status);
+      console.log('generateProfile - OpenAI API Response Status Text:', response.statusText);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('generateProfile - OpenAI API Error Response:', errorData);
+        throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+      }
+
+      const completion = await response.json();
+      console.log('generateProfile - OpenAI request successful');
+      
+      if (!completion.choices?.[0]?.message?.content) {
+        console.error('generateProfile - Invalid OpenAI response format:', completion);
+        throw new Error('Invalid response format from OpenAI');
+      }
+
+      return completion.choices[0].message.content;
   } catch (error) {
     console.error('generateProfile - Error:', error);
     throw error;
