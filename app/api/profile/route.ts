@@ -109,6 +109,10 @@ async function fetchRedditComments(username: string) {
 
 async function generateProfile(comments: string[]) {
   console.log('generateProfile - Starting with number of comments:', comments.length);
+  
+  const MAX_RETRIES = 3;
+  const TIMEOUT_MS = 30000; // 30 seconds timeout
+  
   try {
     const commentText = comments.join(' ').slice(0, 6000);
     console.log('generateProfile - Prepared comment text length:', commentText.length);
@@ -117,41 +121,54 @@ async function generateProfile(comments: string[]) {
     
     console.log('generateProfile - Making OpenAI API request');
     console.log('generateProfile - OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
-    console.log('generateProfile - About to make API call...');
+    console.log('generateProfile - OpenAI Key length:', process.env.OPENAI_API_KEY?.length || 0);
 
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4",
+    let lastError = null;
+    
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`generateProfile - Attempt ${attempt} of ${MAX_RETRIES}`);
+      
+      try {
+        // Create a timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('OpenAI API request timeout')), TIMEOUT_MS);
+        });
+
+        // Create the OpenAI API request promise
+        const openaiPromise = openai.chat.completions.create({
           messages: [{ role: "user", content: prompt }],
+          model: "gpt-4",
           max_tokens: 500,
           temperature: 0.7,
-        }),
-      });
+        });
 
-      console.log('generateProfile - OpenAI API Response Status:', response.status);
-      console.log('generateProfile - OpenAI API Response Status Text:', response.statusText);
+        // Race between timeout and actual request
+        const completion = await Promise.race([openaiPromise, timeoutPromise]);
+        console.log('generateProfile - OpenAI request successful');
+        
+        if (!completion?.choices?.[0]?.message?.content) {
+          throw new Error('Invalid response format from OpenAI');
+        }
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('generateProfile - OpenAI API Error Response:', errorData);
-        throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+        return completion.choices[0].message.content;
+      } catch (error) {
+        lastError = error;
+        console.error(`generateProfile - Attempt ${attempt} failed:`, {
+          error: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+        
+        if (attempt < MAX_RETRIES) {
+          const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+          console.log(`generateProfile - Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
-
-      const completion = await response.json();
-      console.log('generateProfile - OpenAI request successful');
-      
-      if (!completion.choices?.[0]?.message?.content) {
-        console.error('generateProfile - Invalid OpenAI response format:', completion);
-        throw new Error('Invalid response format from OpenAI');
-      }
-
-      return completion.choices[0].message.content;
+    }
+    
+    // If we get here, all retries failed
+    throw lastError;
     } catch (error) {
       console.error('generateProfile - OpenAI API Error:', error);
       throw error;
