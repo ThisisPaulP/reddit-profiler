@@ -100,7 +100,7 @@ async function generateProfile(comments: string[]) {
       messages: [{ role: "user", content: prompt }],
       model: "gpt-4",
       // Reduced max tokens to 100
-      max_tokens: 100,
+      max_tokens: 200,
       temperature: 0.7,
     });
 
