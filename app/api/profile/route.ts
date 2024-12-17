@@ -5,6 +5,24 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Function to validate and clean Reddit usernames
+function validateRedditUsername(username: string): string | null {
+  // Remove any leading 'u/' or '/u/' if present
+  username = username.replace(/^\/?(u\/)?/i, '');
+  
+  // Reddit username rules:
+  // - Between 3 and 20 characters
+  // - Only contains alphanumeric characters, underscores, and hyphens
+  // - Doesn't start with a number or special character
+  const redditUsernamePattern = /^[a-zA-Z][a-zA-Z0-9_-]{2,19}$/;
+  
+  if (!redditUsernamePattern.test(username)) {
+    return null;
+  }
+  
+  return username;
+}
+
 async function getRedditToken() {
   const basicAuth = Buffer.from(
     `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`
@@ -116,7 +134,16 @@ export async function POST(req: Request) {
       );
     }
 
-    const comments = await fetchRedditComments(username);
+    // Validate and clean the username
+    const cleanUsername = validateRedditUsername(username);
+    if (!cleanUsername) {
+      return NextResponse.json(
+        { error: 'Invalid Reddit username format. Usernames must be 3-20 characters long and start with a letter.' },
+        { status: 400 }
+      );
+    }
+
+    const comments = await fetchRedditComments(cleanUsername);
     const profile = await generateProfile(comments);
     
     return NextResponse.json({ profile });
