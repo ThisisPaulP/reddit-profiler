@@ -46,7 +46,7 @@ async function fetchRedditComments(username: string) {
 
     // Fetch comments using the access token - reduced to 5 comments
     const response = await fetch(
-      `https://oauth.reddit.com/user/${cleanUsername}/comments?limit=3`,
+      `https://oauth.reddit.com/user/${cleanUsername}/comments?limit=6`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
