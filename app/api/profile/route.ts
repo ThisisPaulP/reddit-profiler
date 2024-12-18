@@ -119,14 +119,14 @@ async function generateProfile(comments: string[]) {
     // Log the exact request we're sending to OpenAI
     console.log('OpenAI request:', JSON.stringify({
       messages: messages,
-      model: "gpt-4",  // Updated model name
+      model: "chatgpt-4o-latest",  // Updated model name
       max_tokens: 200,
       temperature: 0.7,
     }, null, 2));
 
     const completion = await openai.chat.completions.create({
       messages: messages,
-      model: "gpt-4",  // Updated model name
+      model: "chatgpt-4o-latest",  // Updated model name
       max_tokens: 200,
       temperature: 0.7,
     });
