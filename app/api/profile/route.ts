@@ -15,6 +15,11 @@ async function getRedditToken() {
     `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`
   ).toString('base64');
 
+  console.log('Requesting Reddit token with credentials:', {
+    clientId: process.env.REDDIT_CLIENT_ID,
+    userAgent: 'web:reddit-profiler:v1.0.0'
+  });
+
   const response = await fetch('https://www.reddit.com/api/v1/access_token', {
     method: 'POST',
     headers: {
@@ -25,13 +30,20 @@ async function getRedditToken() {
     body: 'grant_type=client_credentials',
   });
 
+  const rawResponse = await response.text();
+  console.log('Raw token response:', rawResponse);
+
   if (!response.ok) {
-    const error = await response.text();
-    console.error('Token Error:', error);
+    console.error('Token Error:', {
+      status: response.status,
+      statusText: response.statusText,
+      response: rawResponse
+    });
     throw new Error('Failed to get Reddit access token');
   }
 
-  const data = await response.json();
+  const data = JSON.parse(rawResponse);
+  console.log('Parsed token response:', data);
   return data.access_token;
 }
 
@@ -44,6 +56,13 @@ async function fetchRedditComments(username: string) {
     const accessToken = await getRedditToken();
     console.log('Successfully obtained access token');
 
+    console.log('Making Reddit API request:', {
+      url: `https://oauth.reddit.com/user/${cleanUsername}/comments?limit=10`,
+      headers: {
+        'User-Agent': 'web:reddit-profiler:v1.0.0'
+      }
+    });
+
     // Fetch comments using the access token - reduced to 5 comments
     const response = await fetch(
       `https://oauth.reddit.com/user/${cleanUsername}/comments?limit=10`,
@@ -55,6 +74,12 @@ async function fetchRedditComments(username: string) {
       }
     );
 
+    const rawResponse = await response.text();
+    console.log('Raw Reddit API response:', rawResponse);
+
+    const data = JSON.parse(rawResponse);
+    console.log('Parsed Reddit API response:', data);
+
     if (response.status === 404) {
       throw new Error('User not found!');
     }
@@ -63,13 +88,6 @@ async function fetchRedditComments(username: string) {
       const errorText = await response.text();
       console.error('Reddit API Error Response:', errorText);
       throw new Error(`Reddit API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data || !data.data || !data.data.children) {
-      console.error('Invalid Reddit API response format:', data);
-      throw new Error('Invalid response format from Reddit');
     }
 
     const comments = data.data.children
@@ -94,6 +112,14 @@ async function generateProfile(comments: string[]) {
     // Reduced comment text length to 1000 characters
     const commentText = comments.join(' ').slice(0, 1000);
     
+    console.log('OpenAI request payload:', {
+      model: "chatgpt-4o-latest",
+      max_tokens: 200,
+      temperature: 0.7,
+      commentLength: comments.join(' ').length,
+      truncatedLength: comments.join(' ').slice(0, 1000).length
+    });
+
     const prompt = `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona. Comments: ${commentText}`;
 
     const completion = await openai.chat.completions.create({
@@ -103,6 +129,7 @@ async function generateProfile(comments: string[]) {
       temperature: 0.7,
     });
 
+    console.log('OpenAI API response:', completion);
     console.log('Successfully generated profile');
     return completion.choices[0].message.content;
   } catch (error) {
