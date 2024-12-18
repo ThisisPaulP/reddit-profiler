@@ -109,31 +109,40 @@ async function fetchRedditComments(username: string) {
 async function generateProfile(comments: string[]) {
   try {
     console.log('Generating profile from comments');
-    // Reduced comment text length to 1000 characters
     const commentText = comments.join(' ').slice(0, 1000);
     
-    console.log('OpenAI request payload:', {
+    const messages = [{ 
+      role: "user", 
+      content: `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona. Comments: ${commentText}` 
+    }];
+
+    // Log the exact request we're sending to OpenAI
+    console.log('OpenAI request:', JSON.stringify({
+      messages: messages,
       model: "chatgpt-4o-latest",
       max_tokens: 200,
       temperature: 0.7,
-      commentLength: comments.join(' ').length,
-      truncatedLength: comments.join(' ').slice(0, 1000).length
-    });
-
-    const prompt = `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona. Comments: ${commentText}`;
+    }, null, 2));
 
     const completion = await openai.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
+      messages: messages,
       model: "chatgpt-4o-latest",
       max_tokens: 200,
       temperature: 0.7,
     });
 
-    console.log('OpenAI API response:', completion);
-    console.log('Successfully generated profile');
+    // Log the full response from OpenAI
+    console.log('OpenAI complete response:', JSON.stringify(completion, null, 2));
+    
+    // Log the specific content we're using
+    console.log('OpenAI generated content:', completion.choices[0].message.content);
+    
     return completion.choices[0].message.content;
   } catch (error) {
-    console.error('Error in generateProfile:', error);
+    console.error('Error in generateProfile:', {
+      error: error.message,
+      fullError: JSON.stringify(error, null, 2)
+    });
     throw error;
   }
 }
