@@ -111,22 +111,22 @@ async function generateProfile(comments: string[]) {
     console.log('Generating profile from comments');
     const commentText = comments.join(' ').slice(0, 1000);
     
-    const messages = [{ 
-      role: "user", 
-      content: `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona. Comments: ${commentText}` 
+    const messages = [{
+      role: "user" as const,  // Type assertion to make TypeScript happy
+      content: `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona. Comments: ${commentText}`
     }];
 
     // Log the exact request we're sending to OpenAI
     console.log('OpenAI request:', JSON.stringify({
       messages: messages,
-      model: "chatgpt-4o-latest",
+      model: "gpt-4",  // Updated model name
       max_tokens: 200,
       temperature: 0.7,
     }, null, 2));
 
     const completion = await openai.chat.completions.create({
       messages: messages,
-      model: "chatgpt-4o-latest",
+      model: "gpt-4",  // Updated model name
       max_tokens: 200,
       temperature: 0.7,
     });
