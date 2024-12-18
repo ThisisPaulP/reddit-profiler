@@ -140,7 +140,7 @@ async function generateProfile(comments: string[]) {
     return completion.choices[0].message.content;
   } catch (error) {
     console.error('Error in generateProfile:', {
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       fullError: JSON.stringify(error, null, 2)
     });
     throw error;
