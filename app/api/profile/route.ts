@@ -113,7 +113,7 @@ async function generateProfile(comments: string[]) {
     
     const messages = [{
       role: "user" as const,  // Type assertion to make TypeScript happy
-      content: `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona. Comments: ${commentText}`
+      content: `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona.  At the bottom of your summary, include the Subreddits that the user has been more active in Comments: ${commentText}`
     }];
 
     // Log the exact request we're sending to OpenAI
