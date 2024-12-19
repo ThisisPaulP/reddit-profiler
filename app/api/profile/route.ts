@@ -92,11 +92,7 @@ async function fetchRedditComments(username: string) {
 
     const comments = data.data.children
       .filter((child: any) => child.data && child.data.body)
-      .map((child: any) => ({
-        body: child.data.body,
-        subreddit: child.data.subreddit,
-        created_utc: new Date(child.data.created_utc * 1000).toISOString()
-      }));
+      .map((child: any) => child.data.body);
 
     if (comments.length === 0) {
       throw new Error('No comments found for this user');
@@ -113,13 +109,11 @@ async function fetchRedditComments(username: string) {
 async function generateProfile(comments: string[]) {
   try {
     console.log('Generating profile from comments');
-    const commentText = comments.map(comment => 
-      `[${comment.subreddit}] (${comment.created_utc}): ${comment.body}`
-    ).join('\n').slice(0, 2000);
+    const commentText = comments.join(' ').slice(0, 2000);
     
     const messages = [{
-      role: "user" as const,
-      content: `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Each comment is prefixed with its subreddit and timestamp. Focus on creating a well-rounded understanding of their online persona, paying attention to which subreddits they frequent and their posting patterns over time. At the bottom of your summary, include the Subreddits that the user has been more active in.\n\nComments:\n${commentText}`
+      role: "user" as const,  // Type assertion to make TypeScript happy
+      content: `Analyze these recent Reddit comments and create a concise profile of the user, including their interests, personality traits, and recurring topics. Focus on creating a well-rounded understanding of their online persona.  At the bottom of your summary, include the Subreddits that the user has been more active in Comments: ${commentText}`
     }];
 
     // Log the exact request we're sending to OpenAI
