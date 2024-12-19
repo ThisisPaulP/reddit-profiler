@@ -65,7 +65,7 @@ async function fetchRedditComments(username: string) {
 
     // Fetch comments using the access token - reduced to 5 comments
     const response = await fetch(
-      `https://oauth.reddit.com/user/${cleanUsername}/comments?limit=10`,
+      `https://oauth.reddit.com/user/${cleanUsername}/comments?limit=20`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -109,7 +109,7 @@ async function fetchRedditComments(username: string) {
 async function generateProfile(comments: string[]) {
   try {
     console.log('Generating profile from comments');
-    const commentText = comments.join(' ').slice(0, 1000);
+    const commentText = comments.join(' ').slice(0, 2000);
     
     const messages = [{
       role: "user" as const,  // Type assertion to make TypeScript happy
@@ -127,7 +127,7 @@ async function generateProfile(comments: string[]) {
     const completion = await openai.chat.completions.create({
       messages: messages,
       model: "chatgpt-4o-latest",  // Updated model name
-      max_tokens: 200,
+      max_tokens: 500,  // Updated from 200 to 500
       temperature: 0.7,
     });
 
